@@ -1,0 +1,39 @@
+# version: '3.7'
+
+services:
+  agentic_ai:
+    build:
+      context: ~/repos/agentic-ai
+      dockerfile: Dockerfile
+    container_name: agentic_ai
+    depends_on:
+      - ollama
+    ports:
+      - 11223:11223
+    volumes:
+      - /Users/excalibur/repos:/workspace/repos
+      - /Users/excalibur/data:/workspace/data
+    restart: unless-stopped
+    stop_grace_period: 1m
+    command: >
+      /bin/bash -c "jupyter-notebook --ip=0.0.0.0 --port=11223 --no-browser --allow-root"
+    networks:
+      - agentic_network
+  ollama:
+    container_name: ollama_cat
+    image: ollama/ollama:latest
+    volumes:
+      - ./ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    ports:
+      - 11434:11434
+    networks:
+      - agentic_network
+networks:
+  agentic_network:
+    external: false
+    # driver: bridge
+
+    # environment:
+    #   - TORCH_CUDA_ARCH_LIST="6.1"

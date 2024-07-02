@@ -1,6 +1,5 @@
 FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
-
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV NVIDIA_VISIBLE_DEVICES all
@@ -56,32 +55,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get -qq update && apt-get -qq clean \
     && rm -rf /var/lib/apt/lists/*
 
-# update python installers
-# RUN pip3 install pip --upgrade
-
 # install python dependencies
-RUN pip3 install --upgrade pip && pip3 --no-cache-dir install \
+# RUN pip3 install --no-cache-dir \
+RUN pip3 install --upgrade pip && pip3 install --no-cache-dir \
     argparse \
-    scikit-learn \
     cython \
+    requests \
+    protobuf \
+    openpyxl \
+    scikit-learn \
     ipykernel \
     jupyter \
     matplotlib \
     numpy \
     pandas \
     seaborn \
-    requests \
     scipy \
-    GitPython \
-    setuptools \
     transformers \
     datasets \
-    pillow \
-    rawpy \
     torch \
-    cmake \
-    llama-parse llama-agents llama-index-llms-huggingface llama-index-llms-huggingface-api llama-index \
-    openpyxl
+    llama-parse llama-agents llama-index-llms-ollama llama-index 
+    # rawpy \
+    # cmake \
+    # GitPython \
+    # setuptools \
+    # sentencepiece \
+    # pillow \
+    # llama-index-llms-huggingface-api llama-index-llms-huggingface \
+    # langchain langgraph langchain-core langchain-community \
+    # crewai \
+    # autogen
+
+# ENV TORCH_CUDA_ARCH_LIST="6.1"
 
 
 # Install miniconda
@@ -99,7 +104,6 @@ RUN pip3 install --upgrade pip && pip3 --no-cache-dir install \
 # RUN rm -rf /root/miniconda3 
 # RUN PATH=$(echo "$PATH" | sed -e 's/:\/root\/miniconda3\/bin$//')
 # #ENV _GLIBCXX_USE_CXX11_ABI=1
-# ENV TORCH_CUDA_ARCH_LIST="6.1"
 # ENV CMAKE_PREFIX_PATH=${CONDA_PREFIX:-"$(dirname $(which conda))/../"}
 # RUN git clone --recursive https://github.com/pytorch/pytorch && \
 #     cd pytorch && \
@@ -112,4 +116,5 @@ RUN pip3 install --upgrade pip && pip3 --no-cache-dir install \
 
 #RUN TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0" TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
 #    CMAKE_PREFIX_PATH="$(dirname $(which conda))/../"
-ENTRYPOINT ["/bin/bash"]
+
+# ENTRYPOINT ["/bin/bash"]
