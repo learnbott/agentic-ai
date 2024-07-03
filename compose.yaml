@@ -16,24 +16,21 @@ services:
     restart: unless-stopped
     stop_grace_period: 1m
     command: >
-      /bin/bash -c "jupyter-notebook --ip=0.0.0.0 --port=11223 --no-browser --allow-root"
-    networks:
-      - agentic_network
+      /bin/bash -c "jupyter-notebook --ip=* --port=11223 --no-browser --allow-root"
+  
   ollama:
-    container_name: ollama_cat
+    container_name: ollama
     image: ollama/ollama:latest
     volumes:
       - ./ollama:/root/.ollama
     environment:
-      - OLLAMA_HOST=0.0.0.0
+      - "OLLAMA_HOST=0.0.0.0:11434"
+      - "OLLAMA_ORIGINS=http://0.0.0.0:11434"
     ports:
       - 11434:11434
-    networks:
-      - agentic_network
-networks:
-  agentic_network:
-    external: false
-    # driver: bridge
+    command: >
+      /bin/bash -c "ollama run qwen2:1.5b"
+    
 
     # environment:
     #   - TORCH_CUDA_ARCH_LIST="6.1"
