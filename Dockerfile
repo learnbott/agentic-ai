@@ -74,14 +74,15 @@ RUN pip3 install --upgrade pip && pip3 install --no-cache-dir \
     transformers \
     datasets \
     torch \
-    llama-parse llama-agents llama-index-llms-ollama llama-index 
+    llama-parse llama-agents llama-index-llms-ollama llama-index \
+    dspy-ai
     # rawpy \
     # cmake \
     # GitPython \
     # setuptools \
     # sentencepiece \
     # pillow \
-    # llama-index-llms-huggingface-api llama-index-llms-huggingface \
+    # llama-index-llms-huggingface-api llama-index-llms-huggingface llama-index-embeddings-huggingface \
     # langchain langgraph langchain-core langchain-community \
     # crewai \
     # autogen
