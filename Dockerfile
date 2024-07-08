@@ -74,8 +74,11 @@ RUN pip3 install --upgrade pip && pip3 install --no-cache-dir \
     transformers \
     datasets \
     torch \
-    llama-parse llama-agents llama-index-llms-ollama llama-index \
-    dspy-ai
+    dspy-ai \
+    accelerate \
+    llama-parse llama-agents llama-index-llms-ollama llama-index llama-index-embeddings-huggingface \
+    langchain \
+    chromadb
     # rawpy \
     # cmake \
     # GitPython \
@@ -88,7 +91,6 @@ RUN pip3 install --upgrade pip && pip3 install --no-cache-dir \
     # autogen
 
 # ENV TORCH_CUDA_ARCH_LIST="6.1"
-
 
 # Install miniconda
 # ENV PATH="${PATH}:/root/miniconda3/bin"
