@@ -119,7 +119,7 @@ class SpreadSheetAnalyzer(dspy.Module):
         parsed_values, parsed_name = parsed_output[-1], parsed_output[0]
         # TODO: write helper agent that checks the parsed name against the self.operators_dict
         if parsed_name not in self.operators_dict:
-            return None, None
+            return dspy.Prediction(answer=f"{parsed_name}: {parsed_values}")
         
         if verbose: print(f'   BEGINNING Parsed Name: {parsed_name}, Parsed Values: {parsed_values}')
         # Safeguard - check if the extracted value can be converted to a float
