@@ -45,44 +45,44 @@ def is_in_range(value, bounds, ops=(operator.ge, operator.le)):
         return ops[0](value, lower) and ops[1](value, upper)
 
 class SpreadsheetValueExtractor(dspy.Signature):
-    """Extract the values for variable names contained in the context."""
+    """Extracts the value from the context for the variable name contained in the question."""
 
     question = dspy.InputField(format=str)
-    context = dspy.InputField(format=str, desc="json string representation of a spreadsheet.")
-    answer = dspy.OutputField(desc='{variable name}: {extracted value}.')
+    context = dspy.InputField(format=str)
+    answer = dspy.OutputField(desc='{variable name}: {extracted value}')
 
 class FloatQuestionCorrector(dspy.Signature):
-    """The extracted value for the given variable name cannot be converted to a float. 
-    Rephrase the question to focus on extracting a float value for the variable name 
-    given in the question."""
+    """The original extracted value is not a float because the original qustion was not specific enough. 
+    Rephrase the original question so that the new question focuses on a float value for the variable name given in the question."""
 
-    question = dspy.InputField(format=str, desc="The original question.")
-    extracted_value = dspy.InputField(format=str)
-    corrected_float_question = dspy.OutputField(format=str)
+    question = dspy.InputField(format=str, desc='Original question.')
+    extracted_value = dspy.InputField(format=str, desc='Original extracted value from the original question for reference.')
+    rephrased_float_question = dspy.OutputField(format=str, desc='Improved version of the original question that focuses on a float value.')
 
 class FormatCorrectQuestion(dspy.Signature):
-    """The extracted value for the given variable name is in the wrong format range.
-    Rephrase the question and include the format description."""
+    """The original extracted value is outside its designated format range because the original question was not specific enough. 
+    Rephrase the original question so that the new question includes the format description."""
 
-    question = dspy.InputField(format=str, desc="The original question.")
-    extracted_value = dspy.InputField(format=str)
-    format_description = dspy.InputField(format=str)
-    corrected_question = dspy.OutputField(format=str)
+    question = dspy.InputField(format=str, desc='Original question.')
+    extracted_value = dspy.InputField(format=str, desc='Original extracted value from the original question for reference.')
+    format_description = dspy.InputField(format=str, desc='Format description for the variable name in the question.')
+    rephrased_format_question = dspy.OutputField(format=str, desc='Improved version of the original question with format description.')
 
 class SpreadSheetAnalyzer(dspy.Module):
-    def __init__(self, range_description_json, operators_dict):
+    def __init__(self, range_description_json, operators_dict, num_passages=3):
         super().__init__()
         self.range_description_json = range_description_json
         self.operators_dict = operators_dict
+        self.retriever = dspy.Retrieve(num_passages)
         self.extraction = dspy.Predict(SpreadsheetValueExtractor)
         self.question_rewriter = dspy.Predict(FormatCorrectQuestion)
         self.float_question_corrector = dspy.Predict(FloatQuestionCorrector)
 
     def correct_float_question(self, question, extracted_value, data, max_attempts=3, verbose=False):
         for _ in range(max_attempts):
-            if verbose: print('   Float Question Failed:', question)
+            if verbose: print('   Float Question Failed:   ', question)
             rewritten_out = self.float_question_corrector(question=question, extracted_value=extracted_value)
-            question = parse_output(rewritten_out.corrected_float_question, 'Corrected Float Question')
+            question = parse_output(rewritten_out.rephrased_float_question, 'Rephrased Float Question')
             if verbose: print('   Float Question Corrected:', question)
             extracted_out = self.extraction(question=question, context=data)
             extracted_value = parse_output(extracted_out.answer, 'Answer')
@@ -95,9 +95,9 @@ class SpreadSheetAnalyzer(dspy.Module):
 
     def correct_format_question(self, question, data, parsed_name, extracted_value, max_attempts=3, verbose=False):
         for _ in range(max_attempts):
-            if verbose: print('   Format Question Failed:', question)
+            if verbose: print('   Format Question Failed:   ', question)
             rewritten_out = self.question_rewriter(question=question, extracted_value=extracted_value, format_description=self.range_description_json[parsed_name])
-            question = parse_output(rewritten_out.corrected_question, 'Corrected Question')
+            question = parse_output(rewritten_out.rephrased_format_question, 'Rephrased Format Question')
             if verbose: print('   Format Question Corrected:', question)
             extracted_out = self.extraction(question=question, context=data)
             extracted_value = parse_output(extracted_out.answer, 'Answer')
@@ -112,7 +112,10 @@ class SpreadSheetAnalyzer(dspy.Module):
                 return parsed_values, question
         return parsed_values, question
 
-    def forward(self, data, question, verbose=False):
+    # def forward(self, data, question, verbose=False):
+    def forward(self, question, verbose=False):
+        if self.retriever is not None:
+            data = self.retriever(question).passages
         extracted_out = self.extraction(question=question, context=data)
         extracted_value = parse_output(extracted_out.answer, 'Answer')
         parsed_output = extracted_value.split(': ')
@@ -142,5 +145,5 @@ class SpreadSheetAnalyzer(dspy.Module):
                                                                     extracted_value,
                                                                     verbose=verbose)
 
-        # return str(parsed_name), str(parsed_values)
+        # # return str(parsed_name), str(parsed_values)
         return dspy.Prediction(answer=f"{parsed_name}: {parsed_values}")
