@@ -44,12 +44,18 @@ def is_in_range(value, bounds, ops=(operator.ge, operator.le)):
     else:
         return ops[0](value, lower) and ops[1](value, upper)
 
-class SpreadsheetValueExtractor(dspy.Signature):
-    """From the question find the variable name in the context and extract its value."""
+class NameExtractor(dspy.Signature):
+    """Extract the variable name from the question."""
 
     question = dspy.InputField(format=str)
-    context = dspy.InputField(format=str)
-    extracted_variable_name_and_value = dspy.OutputField(desc='{variable name}: {extracted value}')
+    extracted_variable_name = dspy.OutputField(desc='Extracted variable name')
+
+class SpreadsheetValueExtractor(dspy.Signature):
+    """Given the variable name, find and extract its corresponding variable from the context."""
+
+    variable_name = dspy.InputField(format=str)
+    context = dspy.InputField(format=str, desc='Spreadsheet data.')
+    extracted_value = dspy.OutputField(desc='Only return the extracted value.')
 
 class FloatQuestionCorrector(dspy.Signature):
     """The original extracted value is not a float because the original question was not specific enough. 
@@ -75,27 +81,27 @@ class SpreadSheetAnalyzer(dspy.Module):
         self.operators_dict = operators_dict
         self.retriever = dspy.Retrieve(num_passages)
         # self.retriever_question_rewriter = dspy.Predict(RetrieverQuestionRewriter)
-        # self.variable_name_extractor = dspy.Predict(NameExtractor)
+        self.variable_name_extractor = dspy.Predict(NameExtractor)
         self.extraction = dspy.Predict(SpreadsheetValueExtractor)
         self.question_rewriter = dspy.Predict(FormatCorrectQuestion)
-        # self.float_question_corrector = dspy.Predict(FloatQuestionCorrector)
+        self.float_question_corrector = dspy.Predict(FloatQuestionCorrector)
 
-    # def correct_float_question(self, question, data=None, max_attempts=3, verbose=False):
-    #     for _ in range(max_attempts):
-    #         if verbose: print('   Float Question Failed:   ', question)
-    #         rewritten_out = self.float_question_corrector(question=question)
-    #         question = parse_output(rewritten_out.rephrased_float_question, 'Rephrased Float Question')
-    #         if verbose: print('   Float Question Corrected:', question)
-    #         if self.retriever is not None:
-    #             data = self.retriever(query_or_queries=question).passages
-    #         extracted_out = self.extraction(question=question, context=data)
-    #         extracted_value = parse_output(extracted_out.extracted_variable_name_and_value, 'Extracted Variable Name And Value')
-    #         parsed_values = extracted_value.split(': ')[-1]
-    #         parsed_values=string_delete(parsed_values, delete_chars=['$', ',', '%'])
-    #         if verbose: print('   Float Parsed Values:', parsed_values)
-    #         if is_float(parsed_values):
-    #             return parsed_values, question
-    #     return None, question
+    def correct_float_question(self, question, data=None, max_attempts=3, verbose=False):
+        for _ in range(max_attempts):
+            if verbose: print('   Float Question Failed:   ', question)
+            rewritten_out = self.float_question_corrector(question=question)
+            question = parse_output(rewritten_out.rephrased_float_question, 'Rephrased Float Question')
+            if verbose: print('   Float Question Corrected:', question)
+            if self.retriever is not None:
+                data = self.retriever(query_or_queries=question).passages
+            extracted_out = self.extraction(question=question, context=data)
+            extracted_value = parse_output(extracted_out.extracted_variable_name_and_value, 'Extracted Variable Name And Value')
+            parsed_values = extracted_value.split(': ')[-1]
+            parsed_values=string_delete(parsed_values, delete_chars=['$', ',', '%'])
+            if verbose: print('   Float Parsed Values:', parsed_values)
+            if is_float(parsed_values):
+                return parsed_values, question
+        return None, question
 
     def correct_format_question(self, question, parsed_name, data=None, max_attempts=3, verbose=False):
         for _ in range(max_attempts):
@@ -133,10 +139,13 @@ class SpreadSheetAnalyzer(dspy.Module):
         #     else:
         #         if verbose: print(f'   {variable_name} not found in data')
         #         pass
-        extracted_out = self.extraction(question=question, context=data)
-        extracted_value = parse_output(extracted_out.extracted_variable_name_and_value, 'Extracted Variable Name And Value')
-        parsed_output = extracted_value.split(': ')
-        parsed_values, parsed_name = parsed_output[-1], parsed_output[0]
+        extracted_variable_name = self.variable_name_extractor(question=question)
+        parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
+        extracted_out = self.extraction(variable_name=parsed_name, context=data)
+        parsed_values = parse_output(extracted_out.extracted_value, 'Extracted Value')
+        # parsed_output = extracted_value.split(': ')
+        # parsed_values, parsed_name = parsed_output[-1], parsed_output[0]
+        # parsed_values = parsed_output[-1], parsed_output[0]
         # TODO: write helper agent that checks the parsed name against the self.operators_dict
         if parsed_name not in self.operators_dict:
             if verbose: print(f'   Parsed name: {parsed_name} not in operators_dict')
@@ -144,10 +153,10 @@ class SpreadSheetAnalyzer(dspy.Module):
         
         if verbose: print(f'   Parsed Name: {parsed_name}, Parsed Values: {parsed_values}')
         # Safeguard - check if the extracted value can be converted to a float
-        # valid_float_tf = is_float(parsed_values)
-        # if not valid_float_tf:
-        #     parsed_values, question = self.correct_float_question(question,
-        #                                                           verbose=verbose)
+        valid_float_tf = is_float(parsed_values)
+        if not valid_float_tf:
+            parsed_values, question = self.correct_float_question(question,
+                                                                  verbose=verbose)
             
         # Safeguard - check if the extracted value falls within the expected range
         if parsed_values is not None:
