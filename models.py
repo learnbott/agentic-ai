@@ -96,6 +96,28 @@ class SpreadSheetAnalyzer(dspy.Module):
         self.question_rewriter = dspy.Predict(FormatCorrectQuestion)
         self.float_question_corrector = dspy.Predict(FloatQuestionCorrector)
 
+    def correct_extracted_variable_name(self, question, extracted_variable_name, max_attempts=3, verbose=False):
+        for _ in range(max_attempts):
+            if verbose: print('   Extracted Variable Name Failed:   ', question)
+            rewritten_var_question_out = self.variable_name_question_rewriter(question=question, extracted_variable_name=extracted_variable_name)
+            rewritten_var_question = parse_output(rewritten_var_question_out.rephrased_float_question, 'Rephrased Float Question')
+            extracted_variable_name = self.variable_name_extractor(question=rewritten_var_question)
+            parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
+            if verbose: print('   Extracted Variable Name Corrected:', rewritten_var_question)
+            extracted_out = self.variable_name_extractor(question=question)
+            extracted_variable_name = parse_output(extracted_out.extracted_variable_name, 'Extracted Variable Name')
+            if verbose: print('   Extracted Variable Name:', extracted_variable_name)
+            if is_in_dict(extracted_variable_name, self.operators_dict):
+                return extracted_variable_name
+        return extracted_variable_name
+            for _ in range(2):
+                rewritten_var_question = self.variable_name_question_rewriter(question=question, extracted_variable_name=parsed_name)
+                extracted_variable_name = self.variable_name_extractor(question=rewritten_var_question)
+                parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
+                valid_var_name_tf = is_in_dict(parsed_name, self.operators_dict)
+                if valid_var_name_tf:
+                    break
+
     def correct_float_question(self, question, parsed_name, data=None, max_attempts=3, verbose=False):
         for _ in range(max_attempts):
             if verbose: print('   Float Question Failed:   ', question)
