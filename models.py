@@ -16,9 +16,17 @@ def is_float(s):
     except ValueError:
         return False
 
+# def parse_output(output: str, field: str) -> str:
+#     field = field+': '
+#     parsed_out = output.split(field)[-1]
+#     if '---' in parsed_out:
+#         return parsed_out.split('---')[0].strip()
+#     else:
+#         return parsed_out.split('\n')[0].strip()
+    
 def parse_output(output: str, field: str) -> str:
     field = field+': '
-    parsed_out = output.split(field)[-1]
+    parsed_out = output.split(field)[2].split('\n')[0]
     if '---' in parsed_out:
         return parsed_out.split('---')[0].strip()
     else:
@@ -50,7 +58,7 @@ class NameExtractor(dspy.Signature):
     """Extract the variable name from the question."""
 
     question = dspy.InputField(format=str)
-    extracted_variable_name = dspy.OutputField(desc='Extracted variable name')
+    extracted_variable_name = dspy.OutputField(desc='Only return the variable name without any additional information.')
 
 class NameExtractorQuestionRewriter(dspy.Signature):
     """The extracted variable name from the question is wrong. Rewrite the original question to focus on extracting the correct variable name."""
@@ -105,8 +113,8 @@ class SpreadSheetAnalyzer(dspy.Module):
             extracted_variable_name = self.variable_name_extractor(question=rewritten_var_question)
             parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
             if verbose: print('   Extracted Variable Name Corrected:', rewritten_var_question)
-            if verbose: print('   Extracted Variable Name:', extracted_variable_name)
-            if is_in_dict(extracted_variable_name, self.operators_dict):
+            if verbose: print('   Extracted Variable Name:', parsed_name)
+            if is_in_dict(parsed_name, self.operators_dict):
                 return parsed_name
         return parsed_name
 
