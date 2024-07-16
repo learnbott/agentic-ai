@@ -53,7 +53,7 @@ class NameExtractor(dspy.Signature):
     extracted_variable_name = dspy.OutputField(desc='Extracted variable name')
 
 class NameExtractorQuestionRewriter(dspy.Signature):
-    """Rewrite the original question to focus on extracting the correct variable name."""
+    """The extracted variable name from the question is wrong. Rewrite the original question to focus on extracting the correct variable name."""
 
     question = dspy.InputField(format=str, desc='Original question.')
     extracted_variable_name = dspy.InputField(format=str, desc='Wrong variable name extracted from the original question.')
@@ -97,54 +97,48 @@ class SpreadSheetAnalyzer(dspy.Module):
         self.float_question_corrector = dspy.Predict(FloatQuestionCorrector)
 
     def correct_extracted_variable_name(self, question, extracted_variable_name, max_attempts=3, verbose=False):
+        rewritten_var_question=question
         for _ in range(max_attempts):
-            if verbose: print('   Extracted Variable Name Failed:   ', question)
-            rewritten_var_question_out = self.variable_name_question_rewriter(question=question, extracted_variable_name=extracted_variable_name)
-            rewritten_var_question = parse_output(rewritten_var_question_out.rephrased_float_question, 'Rephrased Float Question')
+            if verbose: print('   Extracted Variable Name Failed:   ', rewritten_var_question)
+            rewritten_var_question_out = self.variable_name_question_rewriter(question=rewritten_var_question, extracted_variable_name=extracted_variable_name)
+            rewritten_var_question = parse_output(rewritten_var_question_out.rephrased_question, 'Rephrased Question')
             extracted_variable_name = self.variable_name_extractor(question=rewritten_var_question)
             parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
             if verbose: print('   Extracted Variable Name Corrected:', rewritten_var_question)
-            extracted_out = self.variable_name_extractor(question=question)
-            extracted_variable_name = parse_output(extracted_out.extracted_variable_name, 'Extracted Variable Name')
             if verbose: print('   Extracted Variable Name:', extracted_variable_name)
             if is_in_dict(extracted_variable_name, self.operators_dict):
-                return extracted_variable_name
-        return extracted_variable_name
-            for _ in range(2):
-                rewritten_var_question = self.variable_name_question_rewriter(question=question, extracted_variable_name=parsed_name)
-                extracted_variable_name = self.variable_name_extractor(question=rewritten_var_question)
-                parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
-                valid_var_name_tf = is_in_dict(parsed_name, self.operators_dict)
-                if valid_var_name_tf:
-                    break
+                return parsed_name
+        return parsed_name
 
     def correct_float_question(self, question, parsed_name, data=None, max_attempts=3, verbose=False):
+        rewritten_question = question
         for _ in range(max_attempts):
-            if verbose: print('   Float Question Failed:   ', question)
-            rewritten_out = self.float_question_corrector(question=question)
-            question = parse_output(rewritten_out.rephrased_float_question, 'Rephrased Float Question')
-            if verbose: print('   Float Question Corrected:', question)
+            if verbose: print('   Float Question Failed:   ', rewritten_question)
+            rewritten_out = self.float_question_corrector(question=rewritten_question)
+            rewritten_question = parse_output(rewritten_out.rephrased_float_question, 'Rephrased Float Question')
+            if verbose: print('   Float Question Corrected:', rewritten_question)
             if self.retriever is not None:
-                data = self.retriever(query_or_queries=question).passages
+                data = self.retriever(query_or_queries=rewritten_question).passages
             extracted_out = self.extraction(variable_name=parsed_name, context=data)
-            extracted_value = parse_output(extracted_out.extracted_variable_name_and_value, 'Extracted Variable Name And Value')
+            extracted_value = parse_output(extracted_out.extracted_value, 'Extracted Value')
             parsed_values = extracted_value.split(': ')[-1]
             parsed_values=string_delete(parsed_values, delete_chars=['$', ',', '%'])
             if verbose: print('   Float Parsed Values:', parsed_values)
             if is_float(parsed_values):
                 return parsed_values
-        return None
+        return parsed_values
 
     def correct_format_question(self, question, parsed_name, data=None, max_attempts=3, verbose=False):
+        rephrased_format_question = question
         for _ in range(max_attempts):
-            if verbose: print('   Format Question Failed:   ', question)
-            rewritten_out = self.question_rewriter(question=question, format_description=self.range_description_json[parsed_name])
-            question = parse_output(rewritten_out.rephrased_format_question, 'Rephrased Format Question')
-            if verbose: print('   Format Question Corrected:', question)
+            if verbose: print('   Format Question Failed:   ', rephrased_format_question)
+            rewritten_out = self.question_rewriter(question=rephrased_format_question, format_description=self.range_description_json[parsed_name])
+            rephrased_format_question = parse_output(rewritten_out.rephrased_format_question, 'Rephrased Format Question')
+            if verbose: print('   Format Question Corrected:', rephrased_format_question)
             if self.retriever is not None:
-                data = self.retriever(query_or_queries=question).passages
+                data = self.retriever(query_or_queries=rephrased_format_question).passages
             extracted_out = self.extraction(variable_name=parsed_name, context=data)
-            extracted_value = parse_output(extracted_out.extracted_variable_name_and_value, 'Extracted Variable Name And Value')
+            extracted_value = parse_output(extracted_out.extracted_value, 'Extracted Value')
             parsed_values = extracted_value.split(': ')[-1]
             parsed_values = string_delete(parsed_values, delete_chars=['$', ',', '%'])
             if verbose: print('   Format Parsed Values:', parsed_values)
@@ -156,12 +150,8 @@ class SpreadSheetAnalyzer(dspy.Module):
                 return parsed_values
         return parsed_values
 
-    # def forward(self, data, question, verbose=False):
     def forward(self, question, verbose=False):
         
-        # retriever_question_out = self.retriever_question_rewriter(question=question)
-        # retriever_question = parse_output(retriever_question_out.rephrased_question, 'Rephrased Question')
-        # if verbose and retriever_question != question: print(f'   Rewritten question for the Retriever: {retriever_question}')
         if self.retriever is not None:
             data = self.retriever(query_or_queries=question).passages
         
@@ -169,13 +159,7 @@ class SpreadSheetAnalyzer(dspy.Module):
         parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
         valid_var_name_tf = is_in_dict(parsed_name, self.operators_dict)
         if not valid_var_name_tf:
-            for _ in range(2):
-                rewritten_var_question = self.variable_name_question_rewriter(question=question, extracted_variable_name=parsed_name)
-                extracted_variable_name = self.variable_name_extractor(question=rewritten_var_question)
-                parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
-                valid_var_name_tf = is_in_dict(parsed_name, self.operators_dict)
-                if valid_var_name_tf:
-                    break
+            parsed_values = self.correct_extracted_variable_name(question, parsed_name, max_attempts=3, verbose=verbose)
 
         extracted_out = self.extraction(variable_name=parsed_name, context=data)
         parsed_values = parse_output(extracted_out.extracted_value, 'Extracted Value')
