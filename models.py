@@ -57,7 +57,7 @@ def is_in_range(value, bounds, ops=(operator.ge, operator.le)):
 class NameExtractor(dspy.Signature):
     """Extract the variable name from the question."""
 
-    question = dspy.InputField(format=str)
+    question = dspy.InputField(format=lambda x: "\n===\n" + str(x) + "\n===\n")
     extracted_variable_name = dspy.OutputField(desc='Only return the variable name without any additional information.')
 
 class NameExtractorQuestionRewriter(dspy.Signature):
