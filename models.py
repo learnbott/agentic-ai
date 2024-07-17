@@ -54,10 +54,12 @@ def is_in_range(value, bounds, ops=(operator.ge, operator.le)):
     else:
         return ops[0](value, lower) and ops[1](value, upper)
 
+
 class NameExtractor(dspy.Signature):
     """Extract the variable name from the question."""
 
-    question = dspy.InputField(format=lambda x: "\n===\n" + str(x) + "\n===\n")
+    question = dspy.InputField(format=str)
+    # question = dspy.InputField(format=lambda x: "\n---\n\n" + str(x) + "\n\n---\n")
     extracted_variable_name = dspy.OutputField(desc='Only return the variable name without any additional information.')
 
 class NameExtractorQuestionRewriter(dspy.Signature):
@@ -68,7 +70,7 @@ class NameExtractorQuestionRewriter(dspy.Signature):
     rephrased_question = dspy.OutputField(format=str, desc='Improved version of the original question that focuses on extracting the correct variable name.')
 
 class SpreadsheetValueExtractor(dspy.Signature):
-    """Given the variable name, find and extract its corresponding variable from the context."""
+    """Given the variable name, find and extract its corresponding value from the context."""
 
     variable_name = dspy.InputField(format=str)
     context = dspy.InputField(format=str, desc='Spreadsheet data.')
@@ -160,14 +162,15 @@ class SpreadSheetAnalyzer(dspy.Module):
 
     def forward(self, question, verbose=False):
         
-        if self.retriever is not None:
-            data = self.retriever(query_or_queries=question).passages
-        
         extracted_variable_name = self.variable_name_extractor(question=question)
         parsed_name = parse_output(extracted_variable_name.extracted_variable_name, 'Extracted Variable Name')
         valid_var_name_tf = is_in_dict(parsed_name, self.operators_dict)
         if not valid_var_name_tf:
-            parsed_values = self.correct_extracted_variable_name(question, parsed_name, max_attempts=3, verbose=verbose)
+            parsed_values = self.correct_extracted_variable_name(question, parsed_name, verbose=verbose)
+
+        if self.retriever is not None:
+            retriever_question = question
+            data = self.retriever(query_or_queries=retriever_question).passages
 
         extracted_out = self.extraction(variable_name=parsed_name, context=data)
         parsed_values = parse_output(extracted_out.extracted_value, 'Extracted Value')

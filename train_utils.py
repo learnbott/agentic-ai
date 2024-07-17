@@ -3,6 +3,46 @@ import pandas as pd
 import numpy as np
 import io
 
+
+def print_trainable_parameters(model):
+    """
+    Prints the number of trainable parameters in the model.
+    """
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
+    )
+
+# Function to split DataFrame by empty columns
+def split_df_by_empty_columns(df):
+    # Identify indices of empty columns
+    empty_cols = df.columns[df.isna().all()].tolist()
+    # Split DataFrame by empty columns
+    sub_dfs = np.split(df, df.columns.get_indexer(empty_cols) + 1, axis=1)
+    # Filter out the empty DataFrames (which correspond to the empty columns)
+    sub_dfs = [sub_df.dropna(axis=1, how='all') for sub_df in sub_dfs]
+    return sub_dfs
+
+# Function to split a DataFrame by empty rows
+def split_df_by_empty_rows(df):
+    # Identify indices of empty rows
+    empty_rows = df.index[df.isna().all(axis=1)].tolist()
+    # Split DataFrame by empty rows
+    sub_dfs = np.split(df, df.index.get_indexer(empty_rows) + 1, axis=0)
+    # Filter out the empty DataFrames (which correspond to the empty rows)
+    sub_dfs = [sub_df.dropna(axis=0, how='all') for sub_df in sub_dfs]
+    return sub_dfs
+
+
+# Displaying the final split DataFrames
+# for i, final_df in enumerate(final_split_dfs, 1):
+#     print(f"DataFrame {i}:\n{final_df}\n")
+
 def randomize_row_values(dfs: pd.DataFrame, ground_truth: pd.DataFrame, n_samples: int = None) -> pd.DataFrame:
     """
     Randomly placing values in a dataframe
