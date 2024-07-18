@@ -70,23 +70,31 @@ class OutputCleanup(dspy.Signature):
 
 
 class SpreadSheetAnalyzer(dspy.Module):
-    def __init__(self, range_description_json, operators_dict, num_passages=3):
+    def __init__(self, range_description_json, operators_dict, query_engine=None, num_passages=3):
         super().__init__()
         self.range_description_json = range_description_json
         self.operators_dict = operators_dict
-        self.retriever = dspy.Retrieve(num_passages)
+        if query_engine is None: self.retriever = dspy.Retrieve(num_passages)
+        else: self.retriever = None
+        self.query_engine = query_engine
         self.extraction = dspy.Predict(SpreadsheetValueExtractor)
         # self.cleaner = dspy.Predict(OutputCleanup)
 
     def forward(self, question, verbose=False):
-        
         if self.retriever is not None:
             retriever_question = question
             data = self.retriever(query_or_queries=retriever_question).passages
 
+        elif self.query_engine is not None:
+            retrieved_data = self.query_engine.retrieve(question)
+            data = [x.get_content() for x in retrieved_data]
+
+        else:
+            data=[]
+
         extracted_out = self.extraction(question=question, context=data)
         name_and_value = parse_output(extracted_out.extracted_value, 'Extracted Value')
         parsed_output = name_and_value.split(': ')
-        parsed_values, parsed_name = parsed_output[-1], parsed_output[0]
+        parsed_values, parsed_name = parsed_output[-1].rstrip('.'), parsed_output[0]
 
         return dspy.Prediction(answer=f"{parsed_name}: {parsed_values}")
