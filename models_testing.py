@@ -56,11 +56,11 @@ def is_in_range(value, bounds, ops=(operator.ge, operator.le)):
 
 
 class SpreadsheetValueExtractor(dspy.Signature):
-    """Find the variable name in the question and use the variable name to extract its corresponding value from the context."""
+    """Extract the variable name from the question, and extract its value from the context."""
 
     question = dspy.InputField(format=str)
-    context = dspy.InputField(format=str, desc='Spreadsheet data.')
-    extracted_value = dspy.OutputField(desc='Output in this format: {variable name}: {extracted value}.')
+    context = dspy.InputField(format=str, desc='From spreadsheet data.')
+    extracted_name_and_value = dspy.OutputField(format=str, desc='Output in this format: {variable name}: {extracted value}.')
 
 class OutputCleanup(dspy.Signature):
     """Clean up the output string by removing all unnecessary text."""
@@ -93,7 +93,7 @@ class SpreadSheetAnalyzer(dspy.Module):
             data=[]
 
         extracted_out = self.extraction(question=question, context=data)
-        name_and_value = parse_output(extracted_out.extracted_value, 'Extracted Value')
+        name_and_value = parse_output(extracted_out.extracted_name_and_value, 'Extracted Name And Value')
         parsed_output = name_and_value.split(': ')
         parsed_values, parsed_name = parsed_output[-1].rstrip('.'), parsed_output[0]
 
