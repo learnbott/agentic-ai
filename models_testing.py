@@ -56,11 +56,11 @@ def is_in_range(value, bounds, ops=(operator.ge, operator.le)):
 
 
 class SpreadsheetValueExtractor(dspy.Signature):
-    """Extract the variable name from the question, and extract its value from the context."""
+    """Extract the variable name from the question and its value from the context."""
 
     question = dspy.InputField(format=str)
-    context = dspy.InputField(format=str, desc='From spreadsheet data.')
-    extracted_name_and_value = dspy.OutputField(format=str, desc='Output in this format: {variable name}: {extracted value}.')
+    context = dspy.InputField()
+    extracted_name_and_value = dspy.OutputField(format=str, desc='Output in this format "variable name: extracted value."')
 
 class OutputCleanup(dspy.Signature):
     """Clean up the output string by removing all unnecessary text."""
@@ -77,22 +77,24 @@ class SpreadSheetAnalyzer(dspy.Module):
         if query_engine is None: self.retriever = dspy.Retrieve(num_passages)
         else: self.retriever = None
         self.query_engine = query_engine
-        self.extraction = dspy.Predict(SpreadsheetValueExtractor)
+        # self.extraction = dspy.Predict(SpreadsheetValueExtractor)
         # self.cleaner = dspy.Predict(OutputCleanup)
 
     def forward(self, question, verbose=False):
         if self.retriever is not None:
             retriever_question = question
-            data = self.retriever(query_or_queries=retriever_question).passages
+            context = self.retriever(query_or_queries=retriever_question).passages
 
         elif self.query_engine is not None:
-            retrieved_data = self.query_engine.retrieve(question)
-            data = [x.get_content() for x in retrieved_data]
+            response = self.query_engine.query(question)
+            context = response.response
+            # retrieved_data = self.query_engine.retrieve(question)
+            # data = [x.get_content() for x in retrieved_data]
 
         else:
-            data=[]
+            context=[]
 
-        extracted_out = self.extraction(question=question, context=data)
+        extracted_out = self.extraction(question=question, context=context)
         name_and_value = parse_output(extracted_out.extracted_name_and_value, 'Extracted Name And Value')
         parsed_output = name_and_value.split(': ')
         parsed_values, parsed_name = parsed_output[-1].rstrip('.'), parsed_output[0]
