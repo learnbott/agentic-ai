@@ -82,13 +82,11 @@ class FormatOutput(dspy.Signature):
 
 
 class SpreadSheetAnalyzer(dspy.Module):
-    def __init__(self, range_description_json, operators_dict, query_engine=None, num_passages=3):
+    def __init__(self, range_description_json, operators_dict,  num_passages=3):
         super().__init__()
         self.range_description_json = range_description_json
         self.operators_dict = operators_dict
-        if query_engine is None: self.retriever = dspy.Retrieve(num_passages)
-        else: self.retriever = None
-        self.query_engine = query_engine
+        self.retriever = dspy.Retrieve(num_passages)
 
         self.name_extractor = dspy.Predict(ExtractVariableName)
         self.value_extractor = dspy.Predict(ExtractVariableValue)
@@ -96,18 +94,8 @@ class SpreadSheetAnalyzer(dspy.Module):
         # self.cleaner = dspy.Predict(OutputCleanup)
 
     def forward(self, question, verbose=False):
-        if self.retriever is not None:
-            retriever_question = question
-            context = self.retriever(query_or_queries=retriever_question).passages
-
-        elif self.query_engine is not None:
-            # response = self.query_engine.query(question)
-            # context = response.response
-            retrieved_data = self.query_engine.retrieve(question)
-            context = [x.get_content() for x in retrieved_data]
-
-        else:
-            context=[]
+        retriever_question = question
+        context = self.retriever(query_or_queries=retriever_question).passages
 
         variable_name_output = self.name_extractor(question=question)
         # variable_name = parse_output(extracted_name_out.variable_name, "Variable Name")
