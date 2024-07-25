@@ -64,14 +64,14 @@ class ExtractVariableName(dspy.Signature):
     """Extract the variable name from the question."""
 
     question = dspy.InputField(format=str)
-    variable_name = dspy.OutputField(format=str, desc='Extracted variable name from the question.')
+    variable_name = dspy.OutputField(format=str, desc='Only return the variable name.')
 
 class ExtractVariableValue(dspy.Signature):
     """Extract the value from the context."""
 
     variable_name = dspy.InputField(format=str, desc='Variable name to extract the value for.')
     context = dspy.InputField()
-    variable_value = dspy.OutputField(format=str)
+    variable_value = dspy.OutputField(format=str, desc='Only return the value of the variable.')
 
 class FormatOutput(dspy.Signature):
     """Format the output string."""
@@ -94,16 +94,19 @@ class SpreadSheetAnalyzer(dspy.Module):
         # self.cleaner = dspy.Predict(OutputCleanup)
 
     def forward(self, question, verbose=False):
-        retriever_question = question
-        context = self.retriever(query_or_queries=retriever_question).passages
+        context = self.retriever(query_or_queries=question).passages
+        print(context)
+        fasdfasdfasd
 
         variable_name_output = self.name_extractor(question=question)
-        # variable_name = parse_output(extracted_name_out.variable_name, "Variable Name")
+        # variable_name = parse_output(variable_name_output.variable_name, "Variable Name")
+        # variable_value_out = self.value_extractor(variable_name=variable_name_output.variable_name, context=context)
         variable_value_out = self.value_extractor(variable_name=variable_name_output.variable_name, context=context)
         # extracted_value_out = self.value_extractor(variable_name=variable_name, context=context)
-        # variable_value = parse_output(extracted_value_out.variable_value, "Variable Value")
+        # variable_value = parse_output(variable_value_out.variable_value, "Variable Value")
         # parsed_output = name_and_value.split(': ')
         # parsed_values, parsed_name = parsed_output[-1].rstrip('.'), parsed_output[0]
+
         fin_out = self.final_output(variable_name=variable_name_output.variable_name, variable_value=variable_value_out.variable_value)
         return dspy.Prediction(answer=fin_out.formatted_output)
-        # return dspy.Prediction(answer=f"{fin_out.variable_name}: {fin_out.variable_value}")
+        # return dspy.Prediction(answer=f"{variable_name}: {variable_value}")
