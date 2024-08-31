@@ -1,7 +1,9 @@
-import os
+import os, pickle
 from moviepy.editor import VideoFileClip
 from pydub import AudioSegment
 import pytubefix as pt
+from openai import OpenAI
+import whisper
 
 
 def download_video(video_url, audio_output_path):
@@ -52,7 +54,7 @@ def split_audio_into_chunks(audio_output_path, transcribe_output_dir, max_chunk_
         chunk_index += 1
 
 
-def transcribe_audio_chunks(model, chunk_dir="/workspace/data"):
+def transcribe_audio_chunks(model, chunk_dir="/workspace/data", file_save_path=None):
     # Initialize the Agentic AI model
     transcription = []
     chunk_list = [chunk for chunk in os.listdir(chunk_dir) if chunk.startswith("chunk")]
@@ -60,14 +62,27 @@ def transcribe_audio_chunks(model, chunk_dir="/workspace/data"):
     print(chunk_list)
 
     for chunk in chunk_list:
-        print(f"Transcribing {chunk}...")
-        result = model.transcribe(audio_output_path)
+        print(f"   Transcribing {chunk}...")
         chunk_path = os.path.join(chunk_dir, chunk)
-
-        audio_file = open(chunk_path, "rb")
-        transcription.append(model.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file
-        ))
+        if isinstance(model, OpenAI):
+            audio_file = open(chunk_path, "rb")
+            transcription.append(model.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            ))
+        else:
+            transcription.append(model.transcribe(chunk_path))
     
+    if file_save_path:
+        with open(file_save_path, "wb") as f:
+            pickle.dump(transcription, f)
+
     return transcription
+
+
+def get_transcription_model(open_source_model):
+    if open_source_model:
+        model = whisper.load_model("large")
+    else:
+        model = OpenAI()
+    return model
