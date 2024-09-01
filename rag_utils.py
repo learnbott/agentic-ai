@@ -1,4 +1,4 @@
-import os
+import os, subprocess
 from llama_index.core import VectorStoreIndex
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
 from llama_index.core import (
@@ -45,6 +45,33 @@ def create_llama_query_engine_rag(llm, embed_model, persist_dir=None, documents=
     return query_engine
 
 
+def set_neo4j_password(password):
+    command = ['neo4j-admin', 'dbms', 'set-initial-password', password]
+    
+    try:
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode == 0:
+            print("Password set successfully.")
+        else:
+            print(f"Error setting password: {result.stderr}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+def add_lines_to_conf(file_path='/etc/neo4j/neo4j.conf'):
+    lines_to_add = [
+        "dbms.security.procedures.allowlist=apoc.*\n",
+        "dbms.security.procedures.unrestricted=apoc.*\n"
+    ]
+    
+    try:
+        with open(file_path, 'a') as file:
+            file.writelines(lines_to_add)
+        print("Lines added successfully.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 def create_neo4j_graph_store(neo_url="bolt://localhost:7687", password=os.getenv("NEO4J_PWD"), config={"connection_timeout": 240, "connection_acquisition_timeout": 240, "max_connection_pool_size": 1000}):
     graph_store = Neo4jPropertyGraphStore(
         username="neo4j",
@@ -60,7 +87,7 @@ def neo4j_query(graph_store, query="""MATCH (n) DETACH DELETE n"""):
     return graph_store.structured_query(query)
 
 
-def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store, graph_idx_persist_dir, graph_store_persist_dir, graph_kwargs):
+def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store, graph_idx_persist_dir=None, graph_store_persist_dir=None, graph_kwargs={}):
     if documents is not None:
         graph_index = PropertyGraphIndex.from_documents(documents, 
                                                         llm=llm,
@@ -73,7 +100,7 @@ def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store
     else:
         raise ValueError("Documents must be provided to create the index. Or write a function to fetch the documents you jackleg.")
     
-    graph_index.storage_context.persist(persist_dir=graph_idx_persist_dir)
-    graph_store.persist(persist_path=graph_store_persist_dir)
+    if graph_idx_persist_dir is not None: graph_index.storage_context.persist(persist_dir=graph_idx_persist_dir)
+    if graph_store_persist_dir is not None: graph_store.persist(persist_path=graph_store_persist_dir)
     query_engine = graph_index.as_query_engine(similarity_top_k=5)
     return query_engine

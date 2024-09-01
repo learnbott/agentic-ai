@@ -2,6 +2,7 @@ import os, pickle
 from moviepy.editor import VideoFileClip
 from pydub import AudioSegment
 import pytubefix as pt
+import numpy as np
 from openai import OpenAI
 import whisper
 
@@ -46,7 +47,7 @@ def split_audio_into_chunks(audio_output_path, transcribe_output_dir, max_chunk_
     start_time = 0
     chunk_index = 1
     while start_time < len(audio):
-        print(f"Exporting chunk {chunk_index}/{len(audio)/max_chunk_duration}")
+        print(f"Exporting chunk {chunk_index}/{int(np.ceil(len(audio)/max_chunk_duration))}")
         end_time = min(start_time + max_chunk_duration, len(audio))
         chunk = audio[start_time:end_time]
         chunk.export(f"{transcribe_output_dir}/chunk_{chunk_index}.mp3", format="mp3")
