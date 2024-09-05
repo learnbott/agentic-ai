@@ -1,4 +1,4 @@
-import json
+import json, os
 from llama_parse import LlamaParse
 from llama_index.core import Document
 
@@ -8,6 +8,7 @@ def extract_text_from_pdf(pdf_urls, llama_api_key, llamaparse_kwargs={}, save_js
     
     documents = []
     for pdf in pdf_urls:
+        assert os.path.exists(pdf), f"pdf file not found: {pdf}"
         print('processing pdf:', pdf)
         documents += parser.load_data(pdf)
 
