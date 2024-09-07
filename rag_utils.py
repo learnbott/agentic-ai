@@ -7,7 +7,7 @@ from llama_index.core import (
     PropertyGraphIndex,
 )
 
-def create_llama_query_engine_rag(llm, embed_model, persist_dir=None, documents=None, vector_store_kwargs={}):
+def create_llama_vector_index_rag(llm, embed_model, persist_dir=None, documents=None, vector_store_kwargs={}):
     """
     Create a Llama index from a list of documents.
 
@@ -21,7 +21,7 @@ def create_llama_query_engine_rag(llm, embed_model, persist_dir=None, documents=
     query_engine: The query engine for the Llama index.
 
     """
-    if os.path.exists(persist_dir):
+    if persist_dir is not None and os.path.exists(persist_dir):
          storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
     else:
          storage_context = None
@@ -39,10 +39,10 @@ def create_llama_query_engine_rag(llm, embed_model, persist_dir=None, documents=
     if persist_dir is not None and not os.path.exists(persist_dir): 
             vector_index.storage_context.persist(persist_dir=persist_dir)
             
-    # convert to query engine
-    query_engine = vector_index.as_query_engine()
+    # # convert to query engine
+    # query_engine = vector_index.as_query_engine()
     
-    return query_engine
+    return vector_index
 
 
 def set_neo4j_password(password):
