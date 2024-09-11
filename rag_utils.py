@@ -87,8 +87,8 @@ def neo4j_query(graph_store, query="""MATCH (n) DETACH DELETE n"""):
     return graph_store.structured_query(query)
 
 
-def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store, graph_idx_persist_dir=None, graph_store_persist_dir=None, graph_kwargs={}):
-    if documents is not None:
+def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store, graph_idx_persist_dir=None, graph_store_persist_dir=None, similarity_top_k=3, graph_kwargs={}):
+    if documents is not None and not os.path.exists(graph_idx_persist_dir):
         graph_index = PropertyGraphIndex.from_documents(documents, 
                                                         llm=llm,
                                                         property_graph_store=graph_store, 
@@ -98,9 +98,17 @@ def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store
                                                         show_progress=True,
                                                         **graph_kwargs)
     else:
-        raise ValueError("Documents must be provided to create the index. Or write a function to fetch the documents you jackleg.")
+        if os.path.exists(graph_idx_persist_dir):
+            graph_index=PropertyGraphIndex.from_existing(property_graph_store=graph_store,
+                                 llm=llm,
+                                 kg_extractor=[ kg_extractor ], 
+                                 embed_model=embed_model,
+                                 storage_context=StorageContext.from_defaults(persist_dir=graph_idx_persist_dir),
+                                 )
+        else:
+            raise ValueError("Documents must be provided to create the index. Or write a function to fetch the documents you jackleg.")
     
     if graph_idx_persist_dir is not None: graph_index.storage_context.persist(persist_dir=graph_idx_persist_dir)
     if graph_store_persist_dir is not None: graph_store.persist(persist_path=graph_store_persist_dir)
-    query_engine = graph_index.as_query_engine(similarity_top_k=5)
+    query_engine = graph_index.as_query_engine(similarity_top_k=similarity_top_k)
     return query_engine
