@@ -1,11 +1,7 @@
 import os, subprocess
 from llama_index.core import VectorStoreIndex
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
-from llama_index.core import (
-    StorageContext,
-    VectorStoreIndex,
-    PropertyGraphIndex,
-)
+from llama_index.core import StorageContext, VectorStoreIndex, PropertyGraphIndex
 
 def create_llama_vector_index_rag(llm, embed_model, persist_dir=None, documents=None, vector_store_kwargs={}):
     """
@@ -37,7 +33,7 @@ def create_llama_vector_index_rag(llm, embed_model, persist_dir=None, documents=
     
     # save the database
     if persist_dir is not None and not os.path.exists(persist_dir): 
-            vector_index.storage_context.persist(persist_dir=persist_dir)
+        vector_index.storage_context.persist(persist_dir=persist_dir)
             
     # # convert to query engine
     # query_engine = vector_index.as_query_engine()
@@ -83,14 +79,16 @@ def create_neo4j_graph_store(neo_url="bolt://localhost:7687", password=os.getenv
     return graph_store
 
 
-def neo4j_query(graph_store, query="""MATCH (n) DETACH DELETE n"""):
+def neo4j_query(graph_store, query="""MATCH n=() DETACH DELETE n"""):
     return graph_store.structured_query(query)
 
 
 def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store, graph_idx_persist_dir=None, graph_store_persist_dir=None, similarity_top_k=3, graph_kwargs={}):
     if documents is not None and not os.path.exists(graph_idx_persist_dir):
+        vector_index = create_llama_vector_index_rag(llm, embed_model, documents=documents)
         graph_index = PropertyGraphIndex.from_documents(documents, 
                                                         llm=llm,
+                                                        vector_store=vector_index,
                                                         property_graph_store=graph_store, 
                                                         embed_model=embed_model, 
                                                         kg_extractors=[kg_extractor],
