@@ -77,7 +77,8 @@ def set_neo4j_password(password):
 def add_lines_to_conf(file_path='/etc/neo4j/neo4j.conf'):
     lines_to_add = [
         "dbms.security.procedures.allowlist=apoc.*\n",
-        "dbms.security.procedures.unrestricted=apoc.*\n"
+        "dbms.security.procedures.unrestricted=apoc.*\n",
+        "dbms.jvm.additional=--add-modules jdk.incubator.vector"
     ]
     
     try:
