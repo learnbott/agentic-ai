@@ -40,6 +40,26 @@ def create_llama_vector_index_rag(llm, embed_model, persist_dir=None, documents=
     
     return vector_index
 
+def dump_neo4j_database(database_name, dump_path):
+    """
+    Dumps the specified Neo4j database to the given path using neo4j-admin.
+
+    :param database_name: Name of the Neo4j database to dump.
+    :param dump_path: Path to dump the database to.
+    """
+    command = [
+        'neo4j-admin', 'database', 'dump', database_name,
+        '--to-path', dump_path
+    ]
+    
+    try:
+        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print("Database dump successful.")
+        # print(result.stdout.decode())
+    except subprocess.CalledProcessError as e:
+        print("Error during database dump.")
+        print(e.stderr.decode())
+
 
 def set_neo4j_password(password):
     command = ['neo4j-admin', 'dbms', 'set-initial-password', password]
