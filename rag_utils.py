@@ -85,10 +85,10 @@ def neo4j_query(graph_store, query="""MATCH n=() DETACH DELETE n"""):
 
 def create_neo4j_graphrag(documents, llm, embed_model, kg_extractor, graph_store, graph_idx_persist_dir=None, graph_store_persist_dir=None, similarity_top_k=3, graph_kwargs={}):
     if documents is not None and not os.path.exists(graph_idx_persist_dir):
-        vector_index = create_llama_vector_index_rag(llm, embed_model, documents=documents)
+        # vector_index = create_llama_vector_index_rag(llm, embed_model, documents=documents)
         graph_index = PropertyGraphIndex.from_documents(documents, 
                                                         llm=llm,
-                                                        vector_store=vector_index,
+                                                        # vector_store=vector_index,
                                                         property_graph_store=graph_store, 
                                                         embed_model=embed_model, 
                                                         kg_extractors=[kg_extractor],
