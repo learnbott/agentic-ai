@@ -1,7 +1,7 @@
 import os, subprocess
 from llama_index.core import VectorStoreIndex
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
-from llama_index.core import StorageContext, VectorStoreIndex, PropertyGraphIndex
+from llama_index.core import StorageContext, VectorStoreIndex, PropertyGraphIndex, load_index_from_storage
 
 def create_llama_vector_index_rag(llm, embed_model=None, persist_dir=None, documents=None, vector_store_kwargs={}):
     """
@@ -29,12 +29,7 @@ def create_llama_vector_index_rag(llm, embed_model=None, persist_dir=None, docum
                                                         storage_context=storage_context, 
                                                         **vector_store_kwargs)
     else:
-        vector_index = VectorStoreIndex(
-                                        llm=llm,
-                                        embed_model=embed_model, 
-                                        show_progress=True,
-                                        storage_context=storage_context, 
-                                        **vector_store_kwargs)
+        vector_index = load_index_from_storage(storage_context=storage_context, embed_model=embed_model, llm=llm, show_progress=True, **vector_store_kwargs)
     
     # save the database
     if persist_dir is not None and not os.path.exists(persist_dir): 
