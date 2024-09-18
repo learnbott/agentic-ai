@@ -3,7 +3,7 @@ from llama_index.core import VectorStoreIndex
 from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
 from llama_index.core import StorageContext, VectorStoreIndex, PropertyGraphIndex
 
-def create_llama_vector_index_rag(llm, embed_model, persist_dir=None, documents=None, vector_store_kwargs={}):
+def create_llama_vector_index_rag(llm, embed_model=None, persist_dir=None, documents=None, vector_store_kwargs={}):
     """
     Create a Llama index from a list of documents.
 
@@ -29,15 +29,17 @@ def create_llama_vector_index_rag(llm, embed_model, persist_dir=None, documents=
                                                         storage_context=storage_context, 
                                                         **vector_store_kwargs)
     else:
-        raise ValueError("Documents must be provided to create the index. Or write a function to fetch the documents you jackleg.")
+        vector_index = VectorStoreIndex(
+                                        llm=llm,
+                                        embed_model=embed_model, 
+                                        show_progress=True,
+                                        storage_context=storage_context, 
+                                        **vector_store_kwargs)
     
     # save the database
     if persist_dir is not None and not os.path.exists(persist_dir): 
         vector_index.storage_context.persist(persist_dir=persist_dir)
             
-    # # convert to query engine
-    # query_engine = vector_index.as_query_engine()
-    
     return vector_index
 
 def dump_neo4j_database(database_name, dump_path):
