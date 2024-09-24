@@ -18,10 +18,11 @@ def create_llama_vector_index_rag(llm, embed_model=None, persist_dir=None, docum
 
     """
     if persist_dir is not None and os.path.exists(persist_dir):
+         print(f"Loading index from {persist_dir}")
          storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
+         documents = None
     else:
          storage_context = None
-         documents = None
     if documents is not None:
         vector_index = VectorStoreIndex.from_documents(documents, 
                                                         llm=llm,
