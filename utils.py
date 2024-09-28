@@ -26,3 +26,22 @@ def parse_list_from_output_string(output_string):
             raise ValueError("No list found in the output string.")
     except (ValueError, SyntaxError):
         raise ValueError("The output string is not a valid list representation.")
+
+
+def extract_list_from_string(text):
+    """
+    Extracts a Python list from a given string containing the list.
+    
+    Parameters:
+    text (str): The input string containing the list.
+    
+    Returns:
+    list: The extracted list.
+    """
+    text = f""""{text}"""
+    list_start_index = text.find('[')
+    list_end_index = text.find(']') + 1
+    if list_start_index == -1 or list_end_index == -1:
+        raise ValueError("No list found in the provided text.")
+    extracted_list = ast.literal_eval(text[list_start_index:list_end_index])
+    return extracted_list
