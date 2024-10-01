@@ -45,3 +45,42 @@ def extract_list_from_string(text):
         raise ValueError("No list found in the provided text.")
     extracted_list = ast.literal_eval(text[list_start_index:list_end_index])
     return extracted_list
+
+def fix_hyphenated_words(text):
+    """
+    Fix formatting issues for hyphenated words with spaces before or after the hyphen.
+    Only make it one word if there is only one space before or after the hyphen.
+    If there is a space before and after the hyphen, leave it alone.
+    
+    Args:
+    text (str): The input text containing hyphenated words.
+    
+    Returns:
+    str: The corrected text with proper hyphenation.
+    """
+    # Regular expression to match hyphenated words with a single space before or after the hyphen
+    pattern = r'\b(\w+)\s*-\s*(\w+)\b'
+
+    # Function to replace the matched patterns with the corrected format
+    def replace_hyphen(match):
+        word1, word2 = match.groups()
+        if (match.group(0).count(' ') == 1):
+            return f"{word1}-{word2}"
+        return match.group(0)
+
+    # Replace the matched patterns with the corrected format
+    corrected_text = re.sub(pattern, replace_hyphen, text)
+    
+    return corrected_text
+
+def extract_tuples_from_string(s):
+    # Regular expression to match tuples
+    tuple_pattern = r'\(\s*".+?"\s*,\s*".+?"\s*\)'
+    
+    # Find all matches in the string
+    matches = re.findall(tuple_pattern, s)
+    
+    # Convert matched strings to actual tuples
+    extracted_tuples = [ast.literal_eval(match) for match in matches]
+    
+    return extracted_tuples
