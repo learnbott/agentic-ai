@@ -7,7 +7,7 @@ from openai import OpenAI
 import whisper
 
 
-def download_video(video_url, audio_output_path):
+def download_video(video_url, video_output_path):
     """
     Download a video from a URL and save it to the output path.
 
@@ -18,7 +18,7 @@ def download_video(video_url, audio_output_path):
     """
     yt = pt.YouTube(video_url)
     stream = yt.streams.filter(only_video=True).first()
-    stream.download(filename=audio_output_path)
+    stream.download(output_path=os.path.dirname(video_output_path), filename=os.path.basename(video_output_path))
 
 
 def video_to_audio(video_path, audio_output_path):
