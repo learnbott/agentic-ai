@@ -1,0 +1,10 @@
+models:
+  - model: Qwen/QwQ-32B
+    parameters:
+      weight: 0.5
+  - model: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
+    parameters:
+      weight: 0.5
+base_model: Qwen/QwQ-32B
+merge_method: linear
+dtype: bfloat16
