@@ -6,5 +6,5 @@ models:
     parameters:
       weight: 0.5
 base_model: Qwen/QwQ-32B
-merge_method: linear
+merge_method: dare_ties
 dtype: bfloat16
